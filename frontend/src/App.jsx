@@ -12,22 +12,29 @@ export default function App() {
   const [error, setError] = useState(null);
   const [uploaderOpen, setUploaderOpen] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError(null);
     try {
       const data = await fetchReadings();
       setReadings(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load readings:', err);
-      setError(err.message || 'Failed to connect to backend REST API');
+      if (!isSilent) setError(err.message || 'Failed to connect to backend REST API');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadData();
+    
+    // Auto-refresh every 3 seconds for live ESP32 WiFi telemetry
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [loadData]);
 
   // Derived stats calculated via useMemo

@@ -35,17 +35,71 @@ export default function BatchUploader({ isOpen, onClose, onSuccess }) {
     setStatusMessage({ type: 'info', text: 'Generated 20 sample pothole reading points.' });
   };
 
+  const parseInput = (rawText) => {
+    const trimmed = rawText.trim();
+    if (!trimmed) throw new Error('Input is empty.');
+
+    // 1. Try standard JSON parse
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        // Fall through to plain text parsing if JSON parse failed
+      }
+    }
+
+    // 2. CSV / Serial Monitor text parser
+    const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+    const readings = [];
+    const now = new Date();
+
+    lines.forEach((line, index) => {
+      // Ignore header lines like "latitude,longitude,depth"
+      if (index === 0 && (line.toLowerCase().includes('lat') && line.toLowerCase().includes('lng'))) {
+        return;
+      }
+
+      // Extract numbers (floating point and integers)
+      const numbers = line.match(/[-+]?\d*\.?\d+/g);
+      if (numbers && numbers.length >= 3) {
+        const lat = parseFloat(numbers[0]);
+        const lng = parseFloat(numbers[1]);
+        const depth = parseFloat(numbers[2]);
+
+        if (!isNaN(lat) && !isNaN(lng) && !isNaN(depth)) {
+          // Check if there's an ISO timestamp string on the line
+          const isoMatch = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+          const timestamp = isoMatch ? isoMatch[0] : new Date(now.getTime() - (lines.length - index) * 1000).toISOString();
+
+          readings.push({
+            latitude: lat,
+            longitude: lng,
+            pothole_depth: depth,
+            sensor_timestamp: timestamp,
+          });
+        }
+      }
+    });
+
+    if (readings.length === 0) {
+      throw new Error('Could not extract valid (Latitude, Longitude, Depth) readings from input.');
+    }
+
+    return readings;
+  };
+
   const handleUpload = async () => {
     setStatusMessage(null);
     if (!jsonInput.trim()) {
-      setStatusMessage({ type: 'error', text: 'Please enter or generate a JSON payload array.' });
+      setStatusMessage({ type: 'error', text: 'Please paste JSON, CSV, or Serial output data.' });
       return;
     }
 
     try {
-      const parsed = JSON.parse(jsonInput);
+      const parsedReadings = parseInput(jsonInput);
       setUploading(true);
-      const res = await uploadReadingsBatch(parsed);
+      const res = await uploadReadingsBatch(parsedReadings);
       const count = Array.isArray(res) ? res.length : 1;
       setStatusMessage({ type: 'success', text: `Successfully synced ${count} readings to database!` });
       setTimeout(() => {
@@ -53,12 +107,8 @@ export default function BatchUploader({ isOpen, onClose, onSuccess }) {
         onClose();
       }, 1200);
     } catch (err) {
-      if (err instanceof SyntaxError) {
-        setStatusMessage({ type: 'error', text: 'Invalid JSON format. Check syntax.' });
-      } else {
-        const errorMsg = err.response?.data?.detail || err.response?.data?.pothole_depth || err.message;
-        setStatusMessage({ type: 'error', text: `Upload failed: ${typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg}` });
-      }
+      const errorMsg = err.message || err.response?.data?.detail || 'Upload failed.';
+      setStatusMessage({ type: 'error', text: `Parse/Upload failed: ${errorMsg}` });
     } finally {
       setUploading(false);
     }
@@ -86,7 +136,7 @@ export default function BatchUploader({ isOpen, onClose, onSuccess }) {
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              JSON Batch Payload Array
+              Paste Data (JSON, CSV, or Raw Serial Logs)
             </label>
             <button
               onClick={handleGenerateSample}
@@ -101,7 +151,7 @@ export default function BatchUploader({ isOpen, onClose, onSuccess }) {
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
             rows={10}
-            placeholder={`[\n  {\n    "latitude": 37.7749,\n    "longitude": -122.4194,\n    "pothole_depth": 12.4,\n    "sensor_timestamp": "2026-09-08T09:15:32Z"\n  }\n]`}
+            placeholder={`Supports 3 formats:\n\n1. Simple CSV / Comma Separated (lat, lng, depth):\n   22.5726, 88.3639, 14.2\n   22.5730, 88.3645, 18.5\n\n2. Serial Monitor Logs:\n   LAT: 22.5726, LNG: 88.3639, DEPTH: 14.2\n\n3. JSON Array:\n   [{"latitude": 22.5726, "longitude": 88.3639, "pothole_depth": 14.2}]`}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition shadow-inner resize-none"
           />
 
