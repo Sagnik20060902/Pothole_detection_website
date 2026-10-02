@@ -40,3 +40,7 @@ class ReadingListCreateAPIView(APIView):
                 {"detail": f"An error occurred during batch ingestion: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def delete(self, request):
+        count = PotholeReading.objects.all().delete()[0]
+        return Response({"detail": f"Successfully deleted {count} readings."}, status=status.HTTP_200_OK)

@@ -3,7 +3,7 @@ import StatsHeader from './components/StatsHeader';
 import ReadingsMap from './components/ReadingsMap';
 import ReadingsTable from './components/ReadingsTable';
 import BatchUploader from './components/BatchUploader';
-import { fetchReadings } from './api/readings';
+import { fetchReadings, clearAllReadings } from './api/readings';
 import { AlertTriangle, MapPin } from 'lucide-react';
 
 export default function App() {
@@ -25,6 +25,20 @@ export default function App() {
       if (!isSilent) setLoading(false);
     }
   }, []);
+
+  const handleClearAll = async () => {
+    if (window.confirm('Are you sure you want to delete all stored pothole readings from the database?')) {
+      try {
+        setLoading(true);
+        await clearAllReadings();
+        await loadData();
+      } catch (err) {
+        alert('Failed to clear database: ' + (err.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -54,6 +68,7 @@ export default function App() {
         maxDepth={maxDepth}
         onRefresh={loadData}
         onOpenUploader={() => setUploaderOpen(true)}
+        onClearAll={handleClearAll}
         loading={loading}
       />
 

@@ -18,3 +18,8 @@ export const uploadReadingsBatch = async (batchPayload) => {
   const response = await client.post('/readings/', batchPayload);
   return response.data;
 };
+
+export const clearAllReadings = async () => {
+  const response = await client.delete('/readings/');
+  return response.data;
+};

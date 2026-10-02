@@ -1,7 +1,7 @@
 import React from 'react';
-import { Activity, ShieldAlert, Upload, RefreshCw, Layers } from 'lucide-react';
+import { Activity, ShieldAlert, Upload, RefreshCw, Layers, Trash2 } from 'lucide-react';
 
-export default function StatsHeader({ totalPoints, maxDepth, onRefresh, onOpenUploader, loading }) {
+export default function StatsHeader({ totalPoints, maxDepth, onRefresh, onOpenUploader, onClearAll, loading }) {
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl sticky top-0 z-20 px-6 py-5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -78,6 +78,16 @@ export default function StatsHeader({ totalPoints, maxDepth, onRefresh, onOpenUp
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Upload Batch Dump</span>
+          </button>
+
+          <button
+            onClick={onClearAll}
+            disabled={totalPoints === 0}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition disabled:opacity-30 cursor-pointer"
+            title="Clear all stored pothole data"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            <span>Clear All</span>
           </button>
         </div>
 
