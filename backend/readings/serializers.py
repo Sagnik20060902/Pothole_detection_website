@@ -11,7 +11,8 @@ class PotholeReadingSerializer(serializers.ModelSerializer):
         fields = ['id', 'latitude', 'longitude', 'pothole_depth', 'particle_depth', 'sensor_timestamp', 'created_at']
         read_only_fields = ['id', 'created_at']
         extra_kwargs = {
-            'pothole_depth': {'required': False}
+            'pothole_depth': {'required': False},
+            'sensor_timestamp': {'required': False, 'allow_null': True}
         }
 
     def validate(self, attrs):
@@ -23,6 +24,10 @@ class PotholeReadingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"pothole_depth": "This field is required."})
         elif 'particle_depth' in attrs:
             attrs.pop('particle_depth')
+
+        from django.utils import timezone
+        if 'sensor_timestamp' not in attrs or not attrs['sensor_timestamp']:
+            attrs['sensor_timestamp'] = timezone.now()
 
         lat = attrs.get('latitude')
         lng = attrs.get('longitude')
