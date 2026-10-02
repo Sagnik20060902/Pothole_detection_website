@@ -77,7 +77,7 @@ export default function StatsHeader({ totalPoints, maxDepth, onRefresh, onOpenUp
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/40 transition cursor-pointer"
           >
             <Upload className="w-3.5 h-3.5" />
-            <span>Upload Batch Dump</span>
+            <span>Add Pothole Data</span>
           </button>
 
           <button
