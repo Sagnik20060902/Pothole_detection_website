@@ -1,13 +1,37 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
-import { Locate, RotateCcw } from 'lucide-react';
+import { Locate, RotateCcw, Layers } from 'lucide-react';
 import { formatDate, formatCoordinates, getDepthSeverity } from '../utils/format';
+
+const TILE_LAYERS = {
+  dark: {
+    name: 'CartoDB Dark',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+  },
+  osm: {
+    name: 'Standard OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+  },
+  satellite: {
+    name: 'Esri Satellite Imagery',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    subdomains: '',
+  },
+};
 
 export default function ReadingsMap({ readings = [] }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
   const layerGroupRef = useRef(null);
   const initialBoundsSetRef = useRef(false);
+
+  const [activeStyle, setActiveStyle] = useState('dark');
 
   // Filter out invalid coordinates (0,0 or out of bound lat/lng)
   const validReadings = useMemo(() => {
@@ -25,7 +49,6 @@ export default function ReadingsMap({ readings = [] }) {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      // Default center: India / Default city if no points yet
       const map = L.map(mapContainerRef.current, {
         center: [22.5726, 88.3639],
         zoom: 13,
@@ -36,13 +59,14 @@ export default function ReadingsMap({ readings = [] }) {
         zoomControl: true,
       });
 
-      // Use CartoDB Dark Matter tile layer (Native smooth dark tiles - NO CSS filter lag!)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+      const initialTileConfig = TILE_LAYERS.dark;
+      const tileLayer = L.tileLayer(initialTileConfig.url, {
+        attribution: initialTileConfig.attribution,
+        subdomains: initialTileConfig.subdomains,
         maxZoom: 19,
       }).addTo(map);
 
+      tileLayerRef.current = tileLayer;
       layerGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
@@ -54,6 +78,26 @@ export default function ReadingsMap({ readings = [] }) {
       }
     };
   }, []);
+
+  // Change Map Tile Style dynamically (Free, 0 API key required)
+  const handleStyleChange = (styleKey) => {
+    setActiveStyle(styleKey);
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    const config = TILE_LAYERS[styleKey];
+    const newTileLayer = L.tileLayer(config.url, {
+      attribution: config.attribution,
+      subdomains: config.subdomains,
+      maxZoom: 19,
+    }).addTo(map);
+
+    tileLayerRef.current = newTileLayer;
+  };
 
   // Update Markers & Polyline smoothly WITHOUT yanking user zoom/pan
   useEffect(() => {
@@ -128,7 +172,7 @@ export default function ReadingsMap({ readings = [] }) {
       circle.addTo(layerGroup);
     });
 
-    // Auto-fit bounds ONLY ON INITIAL LOAD so map view doesn't yank while user scrolls/drags!
+    // Auto-fit bounds ONLY ON INITIAL LOAD
     if (!initialBoundsSetRef.current && validReadings.length > 0) {
       const bounds = L.latLngBounds(latLngs);
       if (bounds.isValid()) {
@@ -155,7 +199,24 @@ export default function ReadingsMap({ readings = [] }) {
       {/* Map Element */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-      {/* Floating Recenter Map Button */}
+      {/* Top Left: Free Map Style Layer Switcher (0 API Key Required) */}
+      <div className="absolute top-4 left-14 z-[1000] flex items-center bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl">
+        {Object.entries(TILE_LAYERS).map(([key, style]) => (
+          <button
+            key={key}
+            onClick={() => handleStyleChange(key)}
+            className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition cursor-pointer ${
+              activeStyle === key
+                ? 'bg-cyan-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+          >
+            {style.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Top Right: Floating Recenter Map Button */}
       {validReadings.length > 0 && (
         <button
           onClick={handleRecenter}
@@ -180,7 +241,7 @@ export default function ReadingsMap({ readings = [] }) {
         </div>
       )}
 
-      {/* Map Legend Overlay */}
+      {/* Bottom Right: Map Legend Overlay */}
       <div className="absolute bottom-4 right-4 z-[1000] bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-3.5 text-xs text-slate-300 shadow-xl space-y-1.5 pointer-events-auto">
         <div className="font-semibold text-slate-400 uppercase tracking-wider text-[10px] mb-1">
           Severity Scale
