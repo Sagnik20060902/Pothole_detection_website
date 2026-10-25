@@ -27,9 +27,9 @@ class Command(BaseCommand):
             deleted, _ = PotholeReading.objects.all().delete()
             self.stdout.write(self.style.WARNING(f'Cleared {deleted} existing pothole readings.'))
 
-        # Base starting location (San Francisco / Bay Area road inspection route)
-        start_lat = 37.7749
-        start_lng = -122.4194
+        # Base starting location (Kolkata / City inspection route)
+        start_lat = 22.5726
+        start_lng = 88.3639
         start_time = timezone.now() - timedelta(hours=2)
 
         readings = []
@@ -37,13 +37,15 @@ class Command(BaseCommand):
         curr_lng = start_lng
         curr_time = start_time
 
+        sources = ['wifi', 'wifi', 'usb_serial', 'usb_serial', 'manual']
+
         for i in range(count):
             # Simulate driving trajectory
             curr_lat += random.uniform(0.0002, 0.0008)
             curr_lng += random.uniform(-0.0003, 0.0006)
             curr_time += timedelta(seconds=random.randint(15, 60))
 
-            # Simulate pothole depth measurement (depth in cm, e.g. 1.5 cm to 24.8 cm, with occasional severe deep potholes)
+            # Simulate pothole depth measurement from Ultrasonic Sensor HC-SR04
             if random.random() < 0.15:
                 # Severe deep pothole
                 depth = round(random.uniform(14.0, 26.5), 1)
@@ -52,14 +54,17 @@ class Command(BaseCommand):
                 depth = round(random.uniform(7.0, 13.9), 1)
             else:
                 # Minor surface defect / small pothole
-                depth = round(random.uniform(1.2, 6.9), 1)
+                depth = round(random.uniform(2.5, 6.9), 1)
+
+            source = random.choice(sources)
 
             readings.append(PotholeReading(
                 latitude=round(curr_lat, 6),
                 longitude=round(curr_lng, 6),
                 pothole_depth=depth,
+                source=source,
                 sensor_timestamp=curr_time
             ))
 
         PotholeReading.objects.bulk_create(readings)
-        self.stdout.write(self.style.SUCCESS(f'Successfully seeded {count} pothole readings into database!'))
+        self.stdout.write(self.style.SUCCESS(f'Successfully seeded {count} pothole readings (WiFi, USB, Manual) into database!'))

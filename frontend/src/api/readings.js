@@ -19,6 +19,11 @@ export const uploadReadingsBatch = async (batchPayload) => {
   return response.data;
 };
 
+export const deleteReading = async (id) => {
+  const response = await client.delete(`/readings/${id}/`);
+  return response.data;
+};
+
 export const clearAllReadings = async () => {
   const response = await client.delete('/readings/');
   return response.data;

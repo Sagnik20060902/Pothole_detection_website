@@ -8,10 +8,11 @@ class PotholeReadingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PotholeReading
-        fields = ['id', 'latitude', 'longitude', 'pothole_depth', 'particle_depth', 'sensor_timestamp', 'created_at']
+        fields = ['id', 'latitude', 'longitude', 'pothole_depth', 'particle_depth', 'source', 'sensor_timestamp', 'created_at']
         read_only_fields = ['id', 'created_at']
         extra_kwargs = {
             'pothole_depth': {'required': False},
+            'source': {'required': False},
             'sensor_timestamp': {'required': False, 'allow_null': True}
         }
 
@@ -28,6 +29,12 @@ class PotholeReadingSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         if 'sensor_timestamp' not in attrs or not attrs['sensor_timestamp']:
             attrs['sensor_timestamp'] = timezone.now()
+
+        # Default source to manual if not provided
+        if 'source' not in attrs or not attrs['source']:
+            attrs['source'] = 'manual'
+        elif attrs['source'] not in ['manual', 'wifi', 'usb_serial']:
+            attrs['source'] = 'manual'
 
         lat = attrs.get('latitude')
         lng = attrs.get('longitude')

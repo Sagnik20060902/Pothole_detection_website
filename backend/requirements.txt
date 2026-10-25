@@ -1,3 +1,6 @@
 django>=5.0
 djangorestframework>=3.14
 django-cors-headers>=4.3
+pyserial>=3.5
+pyserial>=3.5
+

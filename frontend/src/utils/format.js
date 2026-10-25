@@ -28,23 +28,53 @@ export const getDepthSeverity = (depth) => {
   if (d >= 14.0) {
     return {
       label: 'Severe Pothole',
-      colorClass: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+      colorClass: 'text-rose-700 bg-rose-50 border-rose-200',
       badgeBg: 'bg-rose-500',
-      strokeColor: '#f43f5e',
+      strokeColor: '#e11d48',
     };
   } else if (d >= 7.0) {
     return {
       label: 'Moderate Pothole',
-      colorClass: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+      colorClass: 'text-amber-700 bg-amber-50 border-amber-200',
       badgeBg: 'bg-amber-500',
-      strokeColor: '#f59e0b',
+      strokeColor: '#d97706',
     };
   } else {
     return {
       label: 'Minor Surface Defect',
-      colorClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+      colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       badgeBg: 'bg-emerald-500',
-      strokeColor: '#10b981',
+      strokeColor: '#059669',
     };
+  }
+};
+
+export const getSourceInfo = (source) => {
+  const s = (source || '').toLowerCase();
+  switch (s) {
+    case 'wifi':
+      return {
+        label: 'WiFi Live Stream',
+        shortLabel: 'WiFi',
+        badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+        dotColor: 'bg-emerald-500',
+      };
+    case 'usb_serial':
+    case 'usb':
+    case 'serial':
+      return {
+        label: 'USB Cable (Serial)',
+        shortLabel: 'USB Serial',
+        badgeClass: 'text-teal-700 bg-teal-50 border-teal-200',
+        dotColor: 'bg-teal-500',
+      };
+    case 'manual':
+    default:
+      return {
+        label: 'Manual Upload',
+        shortLabel: 'Manual',
+        badgeClass: 'text-slate-700 bg-slate-100 border-slate-200',
+        dotColor: 'bg-slate-500',
+      };
   }
 };
