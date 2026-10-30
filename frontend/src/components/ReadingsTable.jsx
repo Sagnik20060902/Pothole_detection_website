@@ -1,8 +1,18 @@
-import React from 'react';
-import { formatDate, formatCoordinates, getDepthSeverity, getSourceInfo } from '../utils/format';
-import { Database, AlertTriangle, Wifi, Usb, Upload, CheckCircle2, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { formatDate, formatCoordinates, getDepthSeverity, getSourceInfo, exportReadingsToCSV } from '../utils/format';
+import { Database, AlertTriangle, Wifi, Usb, Upload, CheckCircle2, Download, Check } from 'lucide-react';
 
 export default function ReadingsTable({ readings = [], loading, onDeleteReading }) {
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  const handleDownloadCSV = () => {
+    const success = exportReadingsToCSV(readings);
+    if (success) {
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 2500);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500 shadow-sm">
@@ -30,7 +40,7 @@ export default function ReadingsTable({ readings = [], loading, onDeleteReading 
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
             <Database className="w-4 h-4" />
@@ -44,10 +54,34 @@ export default function ReadingsTable({ readings = [], loading, onDeleteReading 
             </span>
           </div>
         </div>
+        
         <div className="flex items-center gap-3 text-xs">
           <span className="font-mono bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full font-semibold border border-emerald-200">
             {readings.length} Active Points
           </span>
+
+          <button
+            onClick={handleDownloadCSV}
+            disabled={readings.length === 0}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-semibold shadow-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
+              downloadSuccess
+                ? 'bg-emerald-700 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+            title="Download all table readings as a CSV spreadsheet"
+          >
+            {downloadSuccess ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Downloaded!</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                <span>Download CSV</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

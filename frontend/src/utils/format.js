@@ -78,3 +78,64 @@ export const getSourceInfo = (source) => {
       };
   }
 };
+
+/**
+ * Exports an array of pothole readings to a formatted CSV file and triggers a browser download.
+ */
+export const exportReadingsToCSV = (readings = []) => {
+  if (!readings || readings.length === 0) return false;
+
+  const headers = [
+    'ID',
+    'Source',
+    'Sensor Timestamp',
+    'Formatted Date',
+    'Latitude',
+    'Longitude',
+    'Formatted Coordinates',
+    'Pothole Depth (cm)',
+    'Severity Status'
+  ];
+
+  const escapeCSV = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const rows = readings.map((r) => {
+    const depth = r.pothole_depth ?? r.particle_depth ?? 0;
+    const severity = getDepthSeverity(depth);
+    const sourceInfo = getSourceInfo(r.source);
+    const formattedDate = formatDate(r.sensor_timestamp);
+    const formattedCoords = formatCoordinates(r.latitude, r.longitude);
+
+    return [
+      r.id ?? '',
+      escapeCSV(sourceInfo.label),
+      escapeCSV(r.sensor_timestamp || ''),
+      escapeCSV(formattedDate),
+      r.latitude ?? '',
+      r.longitude ?? '',
+      escapeCSV(formattedCoords),
+      typeof depth === 'number' ? depth.toFixed(1) : depth,
+      escapeCSV(severity.label),
+    ].join(',');
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n'); // Add UTF-8 BOM for Excel compatibility
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `pothole_readings_${dateStr}_${timeStr}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  return true;
+};
